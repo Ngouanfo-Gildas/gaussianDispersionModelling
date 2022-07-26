@@ -7,7 +7,7 @@ import numpy as np
 Q = 5         # (g/s) taux d'émission de la source de pollution
 hs = 25       # (m) hauteur de sources de pollution
 Vw = 5        # (m/s) vitesse du vent
-Dw = 100      # direction du vent (°)
+Dw = 0      # direction du vent (°)
 Ts = 303.15     # (30°c = ?K) température du polluant à la source
 T = 280.15      # (7°c = ?K) température de l'air ambiante
 g = 9.8         # (m/s²) constante de gravité
@@ -17,6 +17,8 @@ az = 0.275
 bz = 0.69
 V = 0.0000000019  # (m³/s)
 
+# Calcul de F; 
+# ON SUPPOSE QUE Ts > T
 F = (g/math.pi)*V*((Ts-T)/Ts)  # = 0.31350340690241546
 
 def delta_h(F, Vw, x):  # (en mètre)
@@ -83,26 +85,28 @@ def calcsigmas(x1):
     
     return sig_y, sig_z
 
+# ON SUPPOSE QUE x > 0
 # coeficient de dispersion horizontal et vertical
 sigma_y = lambda x, ay, by : ay * pow(abs(x), by)
 sigma_z = lambda x, az, bz : az * pow(abs(x), bz)
-"""print("\nsig_y pm = ", sigma_y(10, ay, by), "\nsig_z pm = ",sigma_z(10, az, bz))
 
+"""print("\nsig_y pm = ", sigma_y(10, ay, by), "\nsig_z pm = ",sigma_z(10, az, bz))
 sig_y, sig_z = calcsigmas(10)
 print("\nsig_y = ", sig_y, "\nsig_z = ",sig_z)"""
+
 
 def gaussianDM(x, y, z, Vw, Q, hs, ay, az, by, bz):
     """ Concentration du polluant au point (0, 0, hs) """
     Delta_h = delta_h(F, Vw, x)
     H = hs + Delta_h
     z = hs
-    # sigmaY = sigma_y(x, ay, by)
-    # sigmaZ = sigma_z(x, az, bz) 
+    sigmaY = sigma_y(x, ay, by)
+    sigmaZ = sigma_z(x, az, bz) 
 
-    sigmaY, sigmaZ = calcsigmas(10)
+    # sigmaY, sigmaZ = calcsigmas(10)
 
     """ C = Q * v1* v2 / v3 """
-    sigY2 = 2 * sigmaY 
+    sigY2 = 2 * sigmaY       #sigmaY²
     v1 = math.exp(-pow(y, 2) / sigY2)
     v2 = math.exp(-pow((z-H), 2) / sigY2) +\
         math.exp(-pow((z+H), 2) / sigY2)
@@ -112,15 +116,16 @@ def gaussianDM(x, y, z, Vw, Q, hs, ay, az, by, bz):
     d2 = Q / v3
     return  d1 * d2
 
+
 def gauss_model_func(x, y, z, Vw, Q, xs, ys, hs, wind_dir):
     """wind_dir = direction du vent en dégré\n
         u = vitesse du vent en m/s\n
         x,y,z = position de mesure\n
         xs,ys,H = source de polution
         """
-    Dy = 10.
-    Dz = 10.
-    STABILITY = 4
+    # Dy = 10.
+    # Dz = 10.
+    # STABILITY = 4
     u1 = Vw
     # déplacer les coordonnées pour que la pile soit le point central
     x1 = x - xs; # shift the coordinates so that stack is centre point
@@ -152,10 +157,10 @@ def gauss_model_func(x, y, z, Vw, Q, xs, ys, hs, wind_dir):
     
     # calculate sigmas based on stability and distance downwind
     # (sig_y,sig_z) = calcsigmas(downwind)
-    sig_y = sigma_y(10, ay, by)
-    sig_z = sigma_z(10, az, bz)
+    sig_y = sigma_y(downwind, ay, by)
+    sig_z = sigma_z(downwind, az, bz)
 
-    Delta_h = delta_h(F, Vw, x)
+    Delta_h = delta_h(F, Vw, downwind)
     H = hs + Delta_h
 
     # C = Q/(2.*np.pi*u1*sig_y*sig_z) \
@@ -191,10 +196,8 @@ def pollutionZone(P, I, C0):
             x = P[p][0]
             y = P[p][1]
             # x, y = convert_long_lat_xy(long_o=0, lat_o=0, long=P[p][0], lat=P[p][1])
-            z = 25
+            z = 20  # hauteur du point potentiel
             C = gauss_model_func(x, y, z, Vw, Q, xs, ys, hs, Dw)
-            # C = gaussianDM(x, y, z, Vw, Q, hs, ay, az, by, bz)
-            # print(C)
             if C >= C0:
                 W[i][p] = 1
                 Z.append(P[p])

@@ -120,8 +120,10 @@ def read_data(data_file: str):
 def read_data_pd(data_file: str):
     df = pd.read_csv(data_file, delimiter=',')
     list_of_csv = [list(row) for row in df.values]
+    for row in df.values:
+        print(row)
     return list_of_csv
 
 
-# dat = read_data_pd("./potentials_pos_CamdenStreetLight.csv")
-# dat = dat.drop("", axis=1)
+read_data_pd("./pollution_source_positions.csv")
+# print(dat)
